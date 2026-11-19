@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentPulse | Autonomous Multi-Agent Research</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <div class="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i class="fa-solid fa-brain text-white text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white">AgentPulse</h1>
+        <p class="text-xs text-slate-400">Autonomous Multi-Agent Research & Synthesis Engine</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-4">
+      <span id="systemStatus" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-950/80 text-emerald-400 border border-emerald-800">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
+        Ready
+      </span>
+      <a href="/docs" target="_blank" class="text-xs text-slate-400 hover:text-indigo-400 transition-colors">
+        <i class="fa-solid fa-code mr-1"></i>API Docs
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Panel: Input & Agent Pipeline -->
+    <div class="lg:col-span-5 space-y-6">
+      <!-- Query Box -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center">
+          <i class="fa-solid fa-magnifying-glass mr-2 text-indigo-400"></i>Research Query
+        </h2>
+        <form id="researchForm" class="space-y-4">
+          <div>
+            <textarea id="queryInput" rows="3" required
+              placeholder="e.g., Analyze the architectural tradeoffs of SQLite vs DuckDB for edge analytics workloads..."
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition placeholder:text-slate-600 text-slate-200"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Depth</label>
+              <select id="depthSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                <option value="standard">Standard (3 Sub-tasks)</option>
+                <option value="deep">Deep Investigation (4+ Sub-tasks)</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 block mb-1">Domain Context</label>
+              <select id="domainSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                <option value="engineering">Software Architecture</option>
+                <option value="data">Data Engineering</option>
+                <option value="security">Cybersecurity</option>
+                <option value="ai">AI & Systems</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Quick Presets -->
+          <div>
+            <span class="text-xs text-slate-500 block mb-1.5">Preset Scenarios:</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="setPreset('SQLite vs DuckDB for embedded edge analytics workloads')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition">SQLite vs DuckDB</button>
+              <button type="button" onclick="setPreset('Microservices vs Modular Monolith architectural tradeoffs')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition">Monolith vs Microservices</button>
+              <button type="button" onclick="setPreset('Zero Trust Architecture and API Security in Cloud Native')" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded transition">Zero Trust APIs</button>
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn" class="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-sm flex items-center justify-center space-x-2 transition shadow-lg shadow-indigo-600/30">
+            <i class="fa-solid fa-play"></i>
+            <span>Launch Multi-Agent Research</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Agent Orchestration Pipeline Visualizer -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+          <span><i class="fa-solid fa-network-wired mr-2 text-indigo-400"></i>Agent Roster & Telemetry</span>
+          <span id="elapsedTimer" class="text-xs text-slate-500">0.0s</span>
+        </h2>
+        <div class="space-y-3">
+          <!-- Planner -->
+          <div id="agent-planner" class="p-3 rounded-lg border border-slate-800 bg-slate-950 flex items-start space-x-3 transition-colors">
+            <div class="mt-0.5 w-6 h-6 rounded bg-blue-950 text-blue-400 border border-blue-800 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-compass"></i>
+            </div>
+            <div class="flex-1 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200">PlannerAgent</span>
+                <span class="status-badge text-[10px] text-slate-500">Idle</span>
+              </div>
+              <p class="text-slate-400 mt-0.5">Deconstructs inquiry into targeted hypotheses & search tasks.</p>
+            </div>
+          </div>
+
+          <!-- Researcher -->
+          <div id="agent-researcher" class="p-3 rounded-lg border border-slate-800 bg-slate-950 flex items-start space-x-3 transition-colors">
+            <div class="mt-0.5 w-6 h-6 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-book-open"></i>
+            </div>
+            <div class="flex-1 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200">ResearchAgent</span>
+                <span class="status-badge text-[10px] text-slate-500">Idle</span>
+              </div>
+              <p class="text-slate-400 mt-0.5">Executes multi-query retrieval and extracts source citations.</p>
+            </div>
+          </div>
+
+          <!-- Critic -->
+          <div id="agent-critic" class="p-3 rounded-lg border border-slate-800 bg-slate-950 flex items-start space-x-3 transition-colors">
+            <div class="mt-0.5 w-6 h-6 rounded bg-amber-950 text-amber-400 border border-amber-800 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="flex-1 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200">CriticAgent</span>
+                <span class="status-badge text-[10px] text-slate-500">Idle</span>
+              </div>
+              <p class="text-slate-400 mt-0.5">Audits contradictions, scores factuality & detects bias.</p>
+            </div>
+          </div>
+
+          <!-- Synthesizer -->
+          <div id="agent-synthesizer" class="p-3 rounded-lg border border-slate-800 bg-slate-950 flex items-start space-x-3 transition-colors">
+            <div class="mt-0.5 w-6 h-6 rounded bg-purple-950 text-purple-400 border border-purple-800 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-file-pen"></i>
+            </div>
+            <div class="flex-1 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="font-semibold text-slate-200">SynthesizerAgent</span>
+                <span class="status-badge text-[10px] text-slate-500">Idle</span>
+              </div>
+              <p class="text-slate-400 mt-0.5">Compiles executive briefing with Markdown & bracketed citations.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Generated Intelligence & Report -->
+    <div class="lg:col-span-7 flex flex-col space-y-6">
+      <!-- Confidence & Metrics Strip -->
+      <div id="metricsBar" class="hidden grid grid-cols-3 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+          <span class="text-xs text-slate-400 block">Fact Confidence</span>
+          <span id="metricConfidence" class="text-xl font-bold text-emerald-400">--%</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+          <span class="text-xs text-slate-400 block">Verified Sources</span>
+          <span id="metricSources" class="text-xl font-bold text-indigo-400">0</span>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+          <span class="text-xs text-slate-400 block">Execution Time</span>
+          <span id="metricDuration" class="text-xl font-bold text-slate-200">--s</span>
+        </div>
+      </div>
+
+      <!-- Main Report Display -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl flex-1 flex flex-col min-h-[500px]">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center">
+            <i class="fa-solid fa-newspaper mr-2 text-indigo-400"></i>Executive Research Report
+          </h2>
+          <button id="copyBtn" onclick="copyReport()" class="hidden text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition items-center space-x-1.5">
+            <i class="fa-regular fa-copy"></i>
+            <span>Copy Markdown</span>
+          </button>
+        </div>
+
+        <div id="placeholderState" class="flex-1 flex flex-col items-center justify-center text-slate-600 text-center p-8">
+          <i class="fa-solid fa-microchip text-4xl mb-3 text-slate-700"></i>
+          <p class="text-sm">Initiate a research query to view multi-agent deliberation and report synthesis.</p>
+        </div>
+
+        <div id="loadingState" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-center">
+          <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p id="loadingMessage" class="text-sm text-slate-300 font-medium">Deploying agents...</p>
+          <p class="text-xs text-slate-500 mt-1">Decomposing graph, retrieving evidence, and auditing claims...</p>
+        </div>
+
+        <div id="reportContainer" class="hidden prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed overflow-y-auto max-h-[650px] pr-2">
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentMarkdown = "";
+
+    function setPreset(text) {
+      document.getElementById('queryInput').value = text;
+    }
+
+    function setAgentState(agentId, state, text) {
+      const el = document.getElementById(agentId);
+      const badge = el.querySelector('.status-badge');
+      badge.textContent = text;
+      
+      el.classList.remove('border-indigo-500', 'border-emerald-500', 'bg-indigo-950/20', 'bg-emerald-950/20');
+      if (state === 'active') {
+        el.classList.add('border-indigo-500', 'bg-indigo-950/20');
+        badge.className = 'status-badge text-[10px] text-indigo-400 animate-pulse font-medium';
+      } else if (state === 'done') {
+        el.classList.add('border-emerald-500', 'bg-emerald-950/20');
+        badge.className = 'status-badge text-[10px] text-emerald-400 font-medium';
+      } else {
+        badge.className = 'status-badge text-[10px] text-slate-500';
+      }
+    }
+
+    function resetAgents() {
+      ['agent-planner', 'agent-researcher', 'agent-critic', 'agent-synthesizer'].forEach(id => {
+        setAgentState(id, 'idle', 'Idle');
+      });
+    }
+
+    async function copyReport() {
+      if (!currentMarkdown) return;
+      await navigator.clipboard.writeText(currentMarkdown);
+      const btn = document.getElementById('copyBtn');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-check text-emerald-400"></i><span>Copied!</span>';
+      setTimeout(() => btn.innerHTML = orig, 2000);
+    }
+
+    document.getElementById('researchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = document.getElementById('queryInput').value.trim();
+      const depth = document.getElementById('depthSelect').value;
+      const domain = document.getElementById('domainSelect').value;
+      if (!query) return;
+
+      const submitBtn = document.getElementById('submitBtn');
+      const placeholder = document.getElementById('placeholderState');
+      const loading = document.getElementById('loadingState');
+      const reportContainer = document.getElementById('reportContainer');
+      const metricsBar = document.getElementById('metricsBar');
+      const copyBtn = document.getElementById('copyBtn');
+      const loadingMsg = document.getElementById('loadingMessage');
+
+      submitBtn.disabled = true;
+      submitBtn.classList.add('opacity-50');
+      placeholder.classList.add('hidden');
+      reportContainer.classList.add('hidden');
+      loading.classList.remove('hidden');
+
+      resetAgents();
+      setAgentState('agent-planner', 'active', 'Planning...');
+      loadingMsg.textContent = 'PlannerAgent formulating hypothesis graph...';
+
+      const timerInterval = setInterval(() => {
+        // simulate visual agent steps
+      }, 500);
+
+      try {
+        const startTime = Date.now();
+        const response = await fetch('/api/research', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, depth, domain_filter: domain })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        clearInterval(timerInterval);
+
+        // Mark all agents completed
+        setAgentState('agent-planner', 'done', 'Plan Finalized');
+        setAgentState('agent-researcher', 'done', `${data.evidence_gathered.length} Sources`);
+        setAgentState('agent-critic', 'done', `${Math.round(data.critic_review.confidence_score * 100)}% Conf`);
+        setAgentState('agent-synthesizer', 'done', 'Briefing Ready');
+
+        // Render metrics
+        document.getElementById('metricConfidence').textContent = `${Math.round(data.critic_review.confidence_score * 100)}%`;
+        document.getElementById('metricSources').textContent = data.evidence_gathered.length;
+        document.getElementById('metricDuration').textContent = `${data.elapsed_seconds}s`;
+        metricsBar.classList.remove('hidden');
+
+        // Render markdown
+        currentMarkdown = data.final_report.markdown_content;
+        reportContainer.innerHTML = marked.parse(currentMarkdown);
+        loading.classList.add('hidden');
+        reportContainer.classList.remove('hidden');
+        copyBtn.classList.remove('hidden');
+        copyBtn.classList.add('flex');
+
+      } catch (err) {
+        clearInterval(timerInterval);
+        loading.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+        alert('Research execution error: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-50');
+      }
+    });
+  </script>
+</body>
+</html>
+
